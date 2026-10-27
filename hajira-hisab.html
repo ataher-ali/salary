@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>হাজিরা হিসাব</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script>tailwind.config={theme:{extend:{fontFamily:{sans:['"Noto Sans Bengali"','system-ui','sans-serif']}}}}</script>
+<style>
+body{background:#f8fafb}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #0f766e;outline-offset:1px}
+pre{font-family:"Noto Sans Bengali",ui-monospace,monospace}
+svg.lucide{width:1.1em;height:1.1em;flex:none}
+</style>
+</head>
+<body class="font-sans text-slate-800 antialiased">
+<div id="app" class="max-w-3xl mx-auto px-4 pb-16"></div>
+<script>
+const T={
+bn:{app:'হাজিরা হিসাব',emp:'কর্মচারী',entry:'এন্ট্রি',report:'হিসাব',settings:'সেটিংস',policy:'পলিসি',
+id:'আইডি',name:'নাম',salary:'বেতন',branch:'ব্রাঞ্চ',desig:'পদবি',phone:'ফোন নাম্বার',save:'সেভ',imp:'Excel থেকে পেস্ট',impBtn:'ইমপোর্ট',impAdd:'নতুন',impUpd:'আপডেট',impSkip:'বাদ',
+impHint:'Excel থেকে সারি কপি করে এখানে পেস্ট করুন। কলামের ক্রম: আইডি, নাম, বেতন, ব্রাঞ্চ, পদবি, ফোন নাম্বার। প্রথম সারি হেডার হলে বাদ যাবে; একই আইডি থাকলে আপডেট হবে।',cancel:'বাতিল',noData:'কোনো তথ্য নেই',
+employee:'কর্মচারী',date:'তারিখ',lateMin:'লেট (মিনিট)',earlyMin:'আগে ত্যাগ (মিনিট)',absentMin:'মাঝে অনুপস্থিত (মিনিট)',
+month:'মাস',lateDays:'লেট দিন',minutes:'মিনিট',dayDed:'দিন কর্তন',minDed:'মিনিট কর্তন',net:'নেট বেতন',total:'মোট',
+lang:'ভাষা',ldRule:'লেট-দিন অনুযায়ী কর্তন',ldDays:'লেটের দিন সংখ্যা',ldDed:'কর্তনের দিন',ldRep:'প্রতি এই সংখ্যায় পুনরাবৃত্তি',ldSkip:'কর্তিত লেট দিনের মিনিট আলাদা কাটা হবে না',
+wd:'মাসে কর্মদিবস',wh:'দৈনিক কর্মঘণ্টা',late:'লেট মিনিট কর্তন',early:'আগে ত্যাগ কর্তন',absent:'মাঝে অনুপস্থিতি কর্তন',
+grace:'গ্রেস মিনিট (প্রতিদিন)',reset:'ডেটা রিসেট',resetQ:'সব ডেটা ও সেটিংস মুছে যাবে। নিশ্চিত?',dl:'TXT ডাউনলোড',
+warn:'লেট-দিন নিয়ম ও লেট মিনিট কর্তন একসাথে অন থাকলে একই লেটে দুইবার কর্তন হতে পারে।',
+errDup:'এই আইডি আগে থেকেই আছে',errReq:'সব ঘর সঠিকভাবে পূরণ করুন',errMin:'মিনিটের যোগফল দৈনিক কর্মঘণ্টার বেশি হতে পারবে না',
+errEmp:'আগে কর্মচারী যোগ করুন',delQ:'মুছে ফেলবেন?',rules:'কর্তনের নিয়ম',work:'কর্মসময়',data:'ডেটা'},
+en:{app:'HajiraHisab',emp:'Employees',entry:'Entry',report:'Report',settings:'Settings',policy:'Policy',
+id:'ID',name:'Name',salary:'Salary',branch:'Branch',desig:'Designation',phone:'Phone number',save:'Save',imp:'Paste from Excel',impBtn:'Import',impAdd:'New',impUpd:'Updated',impSkip:'Skipped',
+impHint:'Copy rows from Excel and paste here. Column order: ID, Name, Salary, Branch, Designation, Phone. A header row is ignored; an existing ID is updated.',cancel:'Cancel',noData:'No data yet',
+employee:'Employee',date:'Date',lateMin:'Late (min)',earlyMin:'Early leave (min)',absentMin:'Absent in-between (min)',
+month:'Month',lateDays:'Late days',minutes:'Minutes',dayDed:'Day deduction',minDed:'Minute deduction',net:'Net salary',total:'Total',
+lang:'Language',ldRule:'Deduct by late days',ldDays:'Number of late days',ldDed:'Days deducted',ldRep:'Repeat for every such count',ldSkip:'Do not deduct minutes of penalised late days again',
+wd:'Working days per month',wh:'Work hours per day',late:'Late minute deduction',early:'Early leave deduction',absent:'Absence in-between deduction',
+grace:'Grace minutes (per day)',reset:'Reset data',resetQ:'All data and settings will be erased. Continue?',dl:'Download TXT',
+warn:'With both the late-day rule and late-minute deduction on, the same lateness can be deducted twice.',
+errDup:'This ID already exists',errReq:'Fill in all fields correctly',errMin:'Total minutes cannot exceed the daily work hours',
+errEmp:'Add an employee first',delQ:'Delete this item?',rules:'Deduction rules',work:'Working time',data:'Data'}
+};
+const D={lang:'bn',tab:'emp',month:new Date().toISOString().slice(0,7),edit:null,selEmp:'',selDate:new Date().toISOString().slice(0,10),
+s:{ld:{on:true,days:3,deduct:1,rep:true,skip:true},wd:26,wh:8,late:true,early:true,absent:true,grace:0},emps:[],recs:[]};
+let S=JSON.parse(JSON.stringify(D));
+try{const x=JSON.parse(localStorage.getItem('hh_v1'));if(x)S={...S,lang:x.lang||S.lang,s:{...S.s,...x.s,ld:{...S.s.ld,...(x.s||{}).ld}},emps:x.emps||[],recs:x.recs||[]}}catch(e){}
+const save=()=>{try{localStorage.setItem('hh_v1',JSON.stringify({lang:S.lang,s:S.s,emps:S.emps,recs:S.recs}))}catch(e){}};
+const t=k=>T[S.lang][k]||k;
+const F=n=>Number(n||0).toLocaleString(S.lang=='bn'?'bn-BD':'en-US',{maximumFractionDigits:2});
+const esc=x=>String(x??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $=i=>document.getElementById(i);
+const inp='w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white';
+const btn='inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-teal-700 text-white text-sm hover:bg-teal-800';
+const btn2='inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-slate-200 text-sm hover:bg-slate-100';
+const card='bg-white border border-slate-200 rounded-xl p-4';
+const ico=(n,c='')=>`<i data-lucide="${n}" class="${c}"></i>`;
+const lbl=(x,h)=>`<label class="block text-xs text-slate-500 mb-1">${x}</label>${h}`;
+const getP=(o,p)=>p.split('.').reduce((a,k)=>a[k],o);
+const setP=(o,p,v)=>{const a=p.split('.'),l=a.pop();a.reduce((x,k)=>x[k],o)[l]=v};
+
+function calc(e){
+ const s=S.s,r=S.recs.filter(x=>x.emp==e.id&&x.date.startsWith(S.month)).sort((a,b)=>a.date.localeCompare(b.date));
+ let ld=0,m=0;
+ r.forEach(x=>{if(x.late>s.grace)ld++});
+ let n=0,cov=0;
+ if(s.ld.on&&s.ld.days>0){
+  const g=s.ld.rep?Math.floor(ld/s.ld.days):(ld>=s.ld.days?1:0);
+  n=g*s.ld.deduct;cov=s.ld.skip?g*s.ld.days:0;
+ }
+ let seen=0;
+ r.forEach(x=>{
+  if(s.late&&x.late>s.grace){seen++;if(seen>cov)m+=x.late-s.grace}
+  else if(x.late>s.grace)seen++;
+  if(s.early)m+=x.early;if(s.absent)m+=x.abs;
+ });
+ const wd=s.wd||1,rate=e.salary/((wd*s.wh*60)||1);
+ const dd=n*e.salary/wd,md=m*rate,tot=Math.min(e.salary,dd+md);
+ return{ld,m,dd,md,tot,net:e.salary-tot,rate};
+}
+
+function policy(){
+ const b=S.lang=='bn',s=S.s;let n=0;
+ const h=x=>(b?['১','২','৩','৪','৫','৬','৭'][n++]:++n)+'. '+x;
+ const L=['='.repeat(40),b?'   উপস্থিতি ও বেতন কর্তন নীতিমালা':'   Attendance & Salary Deduction Policy','='.repeat(40),''];
+ L.push(h(b?'সাধারণ নিয়ম':'General rules'));
+ L.push('   - '+(b?`মাসে কর্মদিবস: ${F(s.wd)} দিন`:`Working days per month: ${s.wd}`));
+ L.push('   - '+(b?`দৈনিক কর্মঘণ্টা: ${F(s.wh)} ঘণ্টা`:`Work hours per day: ${s.wh}`));
+ L.push('   - '+(b?'মিনিট-রেট = মাসিক বেতন ÷ (কর্মদিবস × কর্মঘণ্টা × ৬০)':'Minute rate = monthly salary / (working days x work hours x 60)'));
+ if(s.grace>0)L.push('   - '+(b?`প্রতিদিন ${F(s.grace)} মিনিট পর্যন্ত লেট গণনা হবে না`:`Up to ${s.grace} minute(s) of lateness per day is not counted`));
+ if(s.ld.on){L.push('',h(b?'লেট উপস্থিতি (দিন ভিত্তিক)':'Late attendance (by days)'));
+  L.push('   - '+(b?`মাসে ${F(s.ld.days)} দিন লেট হলে ${F(s.ld.deduct)} দিনের বেতন কর্তন করা হবে`:`If late ${s.ld.days} day(s) in a month, ${s.ld.deduct} day(s) of salary will be deducted`));
+  if(s.ld.rep)L.push('   - '+(b?'প্রতি একই সংখ্যক লেট দিনের জন্য এই কর্তন পুনরাবৃত্তি হবে':'The deduction repeats for every such number of late days'));
+  L.push('   - '+(s.ld.skip?(b?'যে লেট দিনগুলোর জন্য দিন কর্তন হয়েছে (মাসের প্রথম দিক থেকে ধরে), সেই দিনগুলোর লেট মিনিট আলাদাভাবে কাটা হবে না':'Late minutes of the late days already penalised (counted from the start of the month) will not be deducted again'):(b?'দিন কর্তনের পাশাপাশি সেই লেট দিনগুলোর লেট মিনিটও আলাদাভাবে কাটা হবে':'Late minutes of those late days will also be deducted in addition to the day deduction')));}
+ if(s.late)L.push('',h(b?'লেট উপস্থিতি (মিনিট ভিত্তিক)':'Late attendance (by minutes)'),'   - '+(b?'অনুমোদিত উপস্থিতির সময়ের পর আসলে প্রতি মিনিটের জন্য মিনিট-রেট অনুযায়ী বেতন কর্তন':'Each minute after the allowed in-time is deducted at the minute rate'));
+ if(s.early)L.push('',h(b?'অফিস শেষের আগে ত্যাগ':'Early leave'),'   - '+(b?'অফিস শেষ হওয়ার আগে কর্মস্থল ত্যাগ করলে প্রতি মিনিটের জন্য বেতন কর্তন':'Leaving before office ends is deducted for each minute at the minute rate'));
+ if(s.absent)L.push('',h(b?'কর্মসময়ের মাঝে অনুপস্থিতি':'Absence during work time'),'   - '+(b?'অফিস সময়ের মধ্যে নির্ধারিত সময় কর্মস্থলে না থাকলে প্রতি মিনিটের জন্য বেতন কর্তন':'Being away during office hours is deducted for each minute at the minute rate'));
+ const sal=20000,den=(s.wd*s.wh*60)||1,r=sal/den;
+ L.push('',h(b?'উদাহরণ':'Example'),'   - '+(b?`বেতন ${F(sal)} হলে মিনিট-রেট ≈ ${F(r)}; ৬০ মিনিটের কর্তন ≈ ${F(r*60)}`:`Salary ${sal}: minute rate ~ ${F(r)}; 60 minutes = ${F(r*60)}`));
+ L.push('','-'.repeat(40),(b?'কর্তৃপক্ষ: ____________   কর্মচারী: ____________':'Authority: ____________   Employee: ____________'));
+ return L.join('\n');
+}
+
+const tabs=[['emp','users'],['entry','clock'],['report','calculator'],['settings','settings-2'],['policy','file-text']];
+
+function vEmp(){
+ const e=S.edit?S.emps.find(x=>x.id==S.edit):null;
+ const rows=S.emps.map(x=>`<tr class="border-t border-slate-100"><td class="py-2 pr-2">${esc(x.id)}</td><td class="pr-2">${esc(x.name)}</td><td class="pr-2">${F(x.salary)}</td><td class="pr-2">${esc(x.branch)}</td><td class="pr-2">${esc(x.desig)}</td><td class="pr-2 whitespace-nowrap">${esc(x.phone)}</td>
+ <td class="text-right whitespace-nowrap"><button data-act="editEmp" data-id="${esc(x.id)}" class="p-1.5 text-slate-500 hover:text-teal-700">${ico('pencil')}</button><button data-act="delEmp" data-id="${esc(x.id)}" class="p-1.5 text-slate-500 hover:text-red-600">${ico('trash-2')}</button></td></tr>`).join('');
+ return `<div class="${card} grid grid-cols-2 gap-3">
+ <div>${lbl(t('id'),`<input id="f-id" class="${inp}" value="${e?esc(e.id):''}" ${e?'readonly':''}>`)}</div>
+ <div>${lbl(t('name'),`<input id="f-name" class="${inp}" value="${e?esc(e.name):''}">`)}</div>
+ <div>${lbl(t('salary'),`<input id="f-sal" type="number" min="0" class="${inp}" value="${e?e.salary:''}">`)}</div>
+ <div>${lbl(t('branch'),`<input id="f-br" class="${inp}" value="${e?esc(e.branch):''}">`)}</div>
+ <div>${lbl(t('desig'),`<input id="f-des" class="${inp}" value="${e?esc(e.desig):''}">`)}</div>
+ <div>${lbl(t('phone'),`<input id="f-ph" type="tel" inputmode="tel" class="${inp}" value="${e?esc(e.phone):''}">`)}</div>
+ <div class="col-span-2 flex gap-2"><button data-act="saveEmp" class="${btn}">${ico('check')}${t('save')}</button>${e?`<button data-act="cancelEdit" class="${btn2}">${t('cancel')}</button>`:''}<button data-act="togImp" class="${btn2} ml-auto">${ico('clipboard-paste')}${t('imp')}</button></div></div>
+ ${S.imp?`<div class="${card} mt-4"><p class="text-xs text-slate-500 mb-2">${t('impHint')}</p><textarea id="imp-t" rows="6" class="${inp}" placeholder="E001   রহিম   25000   ঢাকা   ম্যানেজার   01700000000"></textarea><button data-act="doImp" class="${btn} mt-3">${ico('upload')}${t('impBtn')}</button></div>`:''}
+ <div class="${card} mt-4 overflow-x-auto">${S.emps.length?`<table class="w-full text-sm"><thead class="text-xs text-slate-500 text-left"><tr><th class="pb-2 font-medium">${t('id')}</th><th class="font-medium">${t('name')}</th><th class="font-medium">${t('salary')}</th><th class="font-medium">${t('branch')}</th><th class="font-medium">${t('desig')}</th><th class="font-medium">${t('phone')}</th><th></th></tr></thead><tbody>${rows}</tbody></table>`:`<p class="text-sm text-slate-400 text-center py-4">${t('noData')}</p>`}</div>`;
+}
+
+function vEntry(){
+ if(!S.emps.length)return `<p class="${card} text-sm text-slate-500 text-center">${t('errEmp')}</p>`;
+ if(!S.emps.some(x=>x.id==S.selEmp))S.selEmp=S.emps[0].id;
+ const opts=S.emps.map(x=>`<option value="${esc(x.id)}" ${x.id==S.selEmp?'selected':''}>${esc(x.id)} - ${esc(x.name)}</option>`).join('');
+ const rs=S.recs.filter(x=>x.date.startsWith(S.month)).sort((a,b)=>b.date.localeCompare(a.date));
+ const nm=id=>(S.emps.find(x=>x.id==id)||{}).name||id;
+ const num=(i,l)=>`<div>${lbl(l,`<input id="${i}" type="number" min="0" value="0" class="${inp}">`)}</div>`;
+ return `<div class="${card} grid grid-cols-2 gap-3">
+ <div>${lbl(t('employee'),`<select id="r-emp" class="${inp}">${opts}</select>`)}</div>
+ <div>${lbl(t('date'),`<input id="r-date" type="date" value="${S.selDate}" class="${inp}">`)}</div>
+ ${num('r-late',t('lateMin'))}${num('r-early',t('earlyMin'))}${num('r-abs',t('absentMin'))}
+ <div class="flex items-end"><button data-act="saveRec" class="${btn} w-full justify-center">${ico('check')}${t('save')}</button></div></div>
+ <div class="mt-4 flex items-center gap-2"><span class="text-sm text-slate-500">${t('month')}</span><input type="month" data-month value="${S.month}" class="${inp} !w-auto"></div>
+ <div class="${card} mt-2 overflow-x-auto">${rs.length?`<table class="w-full text-sm"><thead class="text-xs text-slate-500 text-left"><tr><th class="pb-2 font-medium">${t('date')}</th><th class="font-medium">${t('employee')}</th><th class="font-medium">${t('lateMin')}</th><th class="font-medium">${t('earlyMin')}</th><th class="font-medium">${t('absentMin')}</th><th></th></tr></thead><tbody>${rs.map(x=>`<tr class="border-t border-slate-100"><td class="py-2 pr-2">${x.date}</td><td class="pr-2">${esc(nm(x.emp))}</td><td>${F(x.late)}</td><td>${F(x.early)}</td><td>${F(x.abs)}</td><td class="text-right"><button data-act="delRec" data-emp="${esc(x.emp)}" data-date="${x.date}" class="p-1.5 text-slate-500 hover:text-red-600">${ico('trash-2')}</button></td></tr>`).join('')}</tbody></table>`:`<p class="text-sm text-slate-400 text-center py-4">${t('noData')}</p>`}</div>`;
+}
+
+function vReport(){
+ let T0={ld:0,m:0,dd:0,md:0,tot:0,net:0};
+ const rows=S.emps.map(e=>{const c=calc(e);for(const k in T0)T0[k]+=c[k];
+  return `<tr class="border-t border-slate-100"><td class="py-2 pr-2">${esc(e.name)}<div class="text-xs text-slate-400">${esc(e.id)}${e.desig?' · '+esc(e.desig):''}${e.branch?' · '+esc(e.branch):''}</div></td><td>${F(c.ld)}</td><td>${F(c.m)}</td><td>${F(c.dd)}</td><td>${F(c.md)}</td><td class="font-medium text-teal-700 text-right">${F(c.net)}</td></tr>`}).join('');
+ const s=S.s,dbl=s.ld.on&&s.late&&!s.ld.skip;
+ return `<div class="flex items-center gap-2"><span class="text-sm text-slate-500">${t('month')}</span><input type="month" data-month value="${S.month}" class="${inp} !w-auto"></div>
+ ${dbl?`<p class="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 flex gap-2">${ico('triangle-alert')}<span>${t('warn')}</span></p>`:''}
+ <div class="${card} mt-3 overflow-x-auto">${S.emps.length?`<table class="w-full text-sm"><thead class="text-xs text-slate-500 text-left"><tr><th class="pb-2 font-medium">${t('employee')}</th><th class="font-medium">${t('lateDays')}</th><th class="font-medium">${t('minutes')}</th><th class="font-medium">${t('dayDed')}</th><th class="font-medium">${t('minDed')}</th><th class="font-medium text-right">${t('net')}</th></tr></thead><tbody>${rows}
+ <tr class="border-t border-slate-300 font-medium"><td class="py-2">${t('total')}</td><td>${F(T0.ld)}</td><td>${F(T0.m)}</td><td>${F(T0.dd)}</td><td>${F(T0.md)}</td><td class="text-right">${F(T0.net)}</td></tr></tbody></table>`:`<p class="text-sm text-slate-400 text-center py-4">${t('noData')}</p>`}</div>`;
+}
+
+const sw=(p,l)=>`<div class="flex items-center justify-between py-2"><span class="text-sm">${l}</span><button data-sw="${p}" role="switch" aria-checked="${getP(S.s,p)}" class="relative w-10 h-6 rounded-full ${getP(S.s,p)?'bg-teal-700':'bg-slate-300'}"><span class="absolute top-1 ${getP(S.s,p)?'left-5':'left-1'} w-4 h-4 bg-white rounded-full transition-all"></span></button></div>`;
+const nf=(p,l,dis)=>`<div class="flex items-center justify-between py-2 gap-3 ${dis?'opacity-40':''}"><span class="text-sm">${l}</span><input type="number" min="0" step="any" data-set="${p}" value="${getP(S.s,p)}" ${dis?'disabled':''} class="${inp} !w-24 text-right"></div>`;
+function vSet(){
+ const o=S.s.ld.on;
+ return `<div class="${card}"><div class="text-sm font-medium mb-2">${t('lang')}</div><div class="flex gap-2">
+ <button data-act="lang" data-v="bn" class="${S.lang=='bn'?btn:btn2}">বাংলা</button><button data-act="lang" data-v="en" class="${S.lang=='en'?btn:btn2}">English</button></div></div>
+ <div class="${card} mt-4"><div class="text-sm font-medium">${t('work')}</div>${nf('wd',t('wd'))}${nf('wh',t('wh'))}${nf('grace',t('grace'))}</div>
+ <div class="${card} mt-4"><div class="text-sm font-medium">${t('rules')}</div>
+ ${sw('ld.on',t('ldRule'))}<div class="pl-3 border-l border-slate-100">${nf('ld.days',t('ldDays'),!o)}${nf('ld.deduct',t('ldDed'),!o)}<div class="${o?'':'opacity-40 pointer-events-none'}">${sw('ld.rep',t('ldRep'))}${sw('ld.skip',t('ldSkip'))}</div></div>
+ <div class="border-t border-slate-100 mt-1">${sw('late',t('late'))}${sw('early',t('early'))}${sw('absent',t('absent'))}</div></div>
+ <div class="${card} mt-4 flex items-center justify-between"><span class="text-sm font-medium">${t('data')}</span><button data-act="reset" class="${btn2} !text-red-600 !border-red-200 hover:!bg-red-50">${ico('rotate-ccw')}${t('reset')}</button></div>`;
+}
+function vPolicy(){
+ return `<div class="${card}"><pre class="text-sm whitespace-pre-wrap leading-relaxed">${esc(policy())}</pre></div><button data-act="dl" class="${btn} mt-4">${ico('download')}${t('dl')}</button>`;
+}
+
+function render(){
+ document.documentElement.lang=S.lang;document.title=t('app');
+ const body={emp:vEmp,entry:vEntry,report:vReport,settings:vSet,policy:vPolicy}[S.tab]();
+ $('app').innerHTML=`<header class="pt-6 pb-4 flex items-center gap-2 text-teal-700">${ico('timer','!w-6 !h-6')}<h1 class="text-xl font-semibold text-slate-900">${t('app')}</h1></header>
+ <nav class="flex gap-1 overflow-x-auto mb-4 border-b border-slate-200">${tabs.map(([k,i])=>`<button data-act="tab" data-t="${k}" class="flex items-center gap-1.5 px-3 py-2 text-sm whitespace-nowrap border-b-2 -mb-px ${S.tab==k?'border-teal-700 text-teal-700 font-medium':'border-transparent text-slate-500 hover:text-slate-800'}">${ico(i)}${t(k)}</button>`).join('')}</nav>${body}`;
+ lucide.createIcons();
+}
+
+const val=i=>$(i).value.trim();
+const A={
+ tab(d){S.tab=d.t;S.edit=null;render()},
+ lang(d){S.lang=d.v;save();render()},
+ saveEmp(){
+  const id=val('f-id'),name=val('f-name'),salary=+val('f-sal'),branch=val('f-br'),desig=val('f-des'),phone=val('f-ph');
+  if(!id||!name||!(salary>0))return alert(t('errReq'));
+  if(S.edit)Object.assign(S.emps.find(x=>x.id==S.edit),{name,salary,branch,desig,phone}),S.edit=null;
+  else{if(S.emps.some(x=>x.id==id))return alert(t('errDup'));S.emps.push({id,name,salary,branch,desig,phone})}
+  save();render();
+ },
+ togImp(){S.imp=!S.imp;render()},
+ doImp(){
+  const rows=$('imp-t').value.replace(/\r/g,'').split('\n').filter(l=>l.trim());
+  const bd=s=>String(s||'').replace(/[০-৯]/g,d=>'০১২৩৪৫৬৭৮৯'.indexOf(d)).replace(/[,\s৳]/g,'');
+  let a=0,u=0,k=0;
+  rows.forEach((l,i)=>{
+   const c=(l.includes('\t')?l.split('\t'):l.split(',')).map(x=>x.trim().replace(/^"|"$/g,''));
+   const [id,name,sal,branch='',desig='',phone='']=c,salary=+bd(sal);
+   if(i==0&&!(salary>0))return;
+   if(!id||!name||!(salary>0)){k++;return}
+   const o={id,name,salary,branch,desig,phone},ex=S.emps.find(x=>x.id==id);
+   if(ex){Object.assign(ex,o);u++}else{S.emps.push(o);a++}
+  });
+  save();S.imp=false;render();
+  alert(`${t('impAdd')}: ${F(a)}, ${t('impUpd')}: ${F(u)}, ${t('impSkip')}: ${F(k)}`);
+ },
+ editEmp(d){S.edit=d.id;render()},
+ cancelEdit(){S.edit=null;render()},
+ delEmp(d){if(!confirm(t('delQ')))return;S.emps=S.emps.filter(x=>x.id!=d.id);S.recs=S.recs.filter(x=>x.emp!=d.id);save();render()},
+ saveRec(){
+  const emp=val('r-emp'),date=val('r-date'),late=+val('r-late')||0,early=+val('r-early')||0,abs=+val('r-abs')||0;
+  if(!emp||!date||late<0||early<0||abs<0)return alert(t('errReq'));
+  if(late+early+abs>S.s.wh*60)return alert(t('errMin'));
+  S.recs=S.recs.filter(x=>!(x.emp==emp&&x.date==date));S.recs.push({emp,date,late,early,abs});
+  S.selEmp=emp;S.selDate=date;S.month=date.slice(0,7);save();render();
+ },
+ delRec(d){S.recs=S.recs.filter(x=>!(x.emp==d.emp&&x.date==d.date));save();render()},
+ dl(){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\ufeff'+policy()],{type:'text/plain;charset=utf-8'}));
+  a.download=S.lang=='bn'?'policy-bn.txt':'policy-en.txt';a.click();URL.revokeObjectURL(a.href);
+ },
+ reset(){if(!confirm(t('resetQ')))return;try{localStorage.removeItem('hh_v1')}catch(e){}S=JSON.parse(JSON.stringify(D));render()}
+};
+document.addEventListener('click',e=>{
+ const s=e.target.closest('[data-sw]');
+ if(s){setP(S.s,s.dataset.sw,!getP(S.s,s.dataset.sw));save();render();return}
+ const a=e.target.closest('[data-act]');if(a&&A[a.dataset.act])A[a.dataset.act](a.dataset);
+});
+document.addEventListener('change',e=>{
+ const el=e.target;
+ if(el.dataset.set!==undefined){setP(S.s,el.dataset.set,Math.max(0,+el.value||0));save();render()}
+ else if(el.hasAttribute('data-month')&&el.value){S.month=el.value;render()}
+ else if(el.id=='r-emp')S.selEmp=el.value;
+ else if(el.id=='r-date'&&el.value){S.selDate=el.value}
+});
+render();
+</script>
+</body>
+</html>
